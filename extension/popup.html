@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --ink: #1a1a1a;
+      --paper: #ffffff;
+      --shade: #f2f2ee;
+      --ok: #2f7d4f;
+      --err: #b3261e;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      width: 260px;
+      padding: 16px 16px 12px;
+      font: 14px/1.4 Georgia, "Times New Roman", serif;
+      color: var(--ink);
+      background: var(--shade);
+    }
+
+    h1 {
+      font-size: 17px;
+      margin: 0 0 12px;
+      font-weight: normal;
+    }
+
+    .cell {
+      position: relative;
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 14px 12px 10px 28px;
+      text-align: left;
+      font: inherit;
+      color: var(--ink);
+      background: var(--paper);
+      border: 2px solid var(--ink);
+      border-radius: 0;
+      cursor: pointer;
+    }
+
+    .cell::before {
+      content: "1";
+      position: absolute;
+      top: 3px;
+      left: 5px;
+      font: bold 11px/1 Georgia, serif;
+    }
+
+    .cell small {
+      display: block;
+      color: #555;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .cell:hover {
+      background: #fffbe0;
+    }
+
+    .cell:focus-visible {
+      outline: 3px solid #3b6fd8;
+      outline-offset: 2px;
+    }
+
+    .cell:disabled {
+      opacity: .6;
+      cursor: default;
+    }
+
+    #status {
+      min-height: 1.4em;
+      margin: 8px 0 0;
+      font-size: 13px;
+    }
+
+    #status.ok {
+      color: var(--ok);
+    }
+
+    #status.err {
+      color: var(--err);
+    }
+
+    footer {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #d6d6d0;
+      font-size: 11px;
+      color: #666;
+    }
+
+    footer p {
+      margin: 0 0 4px;
+    }
+
+    footer a {
+      color: #1a1a1a;
+    }
+
+    footer a:focus-visible {
+      outline: 2px solid #3b6fd8;
+      outline-offset: 1px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Crossword Labs Autofill</h1>
+  <button class="cell" id="fill">
+    Fill and grade puzzle
+    <small>Fills every box, saves progress, and reloads.</small>
+  </button>
+  <p id="status" role="status"></p>
+  <footer>
+    <p><a href="https://github.com/Trogiken/crossword-labs-autofill" id="source">View source on GitHub</a></p>
+    <p>Not affiliated with or endorsed by crosswordlabs.com.</p>
+  </footer>
+  <script src="popup.js"></script>
+</body>
+
+</html>
