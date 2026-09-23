@@ -22,8 +22,5 @@
     "activeTab",
     "scripting"
   ],
-  "host_permissions": [
-    "https://crosswordlabs.com/*"
-  ],
   "homepage_url": "https://github.com/Trogiken/crossword-labs-autofill"
 }
