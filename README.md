@@ -40,4 +40,4 @@ This is a security research demonstration. Many Crossword Labs puzzles are made 
 
 ## License
 
-MIT. See [LICENSE](LICENSE.md).
+MIT. See [LICENSE](LICENSE).
