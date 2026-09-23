@@ -12,7 +12,7 @@ Clicking **Fill and grade puzzle** writes each `grid[r][c].char` into the matchi
 
 ## Install
 
-**From the Chrome Web Store:** _link coming soon_
+**From the Chrome Web Store:** [Crossword Labs Autofill](https://chromewebstore.google.com/detail/igcmjnaginhhlnkifafcnajkmeegocei)
 
 **From source:**
 
