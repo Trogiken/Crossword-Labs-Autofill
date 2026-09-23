@@ -26,7 +26,6 @@ Clicking **Fill and grade puzzle** writes each `grid[r][c].char` into the matchi
 | --- | --- |
 | `activeTab` | Runs only on the current tab, only after you click the button. |
 | `scripting` | Injects the fill script into the page. |
-| `https://crosswordlabs.com/*` | Limits the extension to Crossword Labs. |
 
 The extension makes no network requests and collects no data. See the [privacy policy](PRIVACY.md).
 
