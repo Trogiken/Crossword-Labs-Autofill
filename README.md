@@ -28,7 +28,7 @@ Clicking **Fill and grade puzzle** writes each `grid[r][c].char` into the matchi
 | `scripting` | Injects the fill script into the page. |
 | `https://crosswordlabs.com/*` | Limits the extension to Crossword Labs. |
 
-The extension makes no network requests and collects no data. See the [privacy policy](PRIVACY).
+The extension makes no network requests and collects no data. See the [privacy policy](PRIVACY.md).
 
 ## Suggested fix for Crossword Labs
 
@@ -40,4 +40,4 @@ This is a security research demonstration. Many Crossword Labs puzzles are made 
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE.md).
