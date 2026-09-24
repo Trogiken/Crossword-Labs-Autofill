@@ -32,11 +32,10 @@
     }
 
     .cell {
-      position: relative;
       display: block;
       width: 100%;
       margin: 0;
-      padding: 14px 12px 10px 28px;
+      padding: 12px 14px;
       text-align: left;
       font: inherit;
       color: var(--ink);
@@ -46,12 +45,9 @@
       cursor: pointer;
     }
 
-    .cell::before {
-      content: "1";
-      position: absolute;
-      top: 3px;
-      left: 5px;
-      font: bold 11px/1 Georgia, serif;
+    .cell strong {
+      display: block;
+      font-size: 15px;
     }
 
     .cell small {
@@ -89,21 +85,6 @@
       color: var(--err);
     }
 
-    #report {
-      display: block;
-      margin: 2px 0 0;
-      font-size: 13px;
-      color: var(--err);
-    }
-
-    #report[hidden] {
-      display: none;
-    }
-
-    #report:focus-visible {
-      outline: 2px solid #3b6fd8;
-      outline-offset: 1px;
-    }
 
     footer {
       margin-top: 10px;
@@ -115,6 +96,92 @@
 
     footer p {
       margin: 0 0 4px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .actions > * {
+      white-space: nowrap;
+    }
+
+    #report {
+      padding: 3px 8px;
+      font: 11px/1.4 Georgia, "Times New Roman", serif;
+      color: var(--ink);
+      background: var(--paper);
+      border: 1px solid #bdbdb6;
+      border-radius: 0;
+      cursor: pointer;
+    }
+
+    #report:hover {
+      background: #fffbe0;
+    }
+
+    #report:focus-visible {
+      outline: 2px solid #3b6fd8;
+      outline-offset: 1px;
+    }
+
+    /* Shown after an error, so reporting it is one obvious click. */
+    #error {
+      margin: 10px 0 0;
+      padding: 10px 12px 12px;
+      background: #fdf0ef;
+      border: 2px solid var(--err);
+    }
+
+    #error[hidden] {
+      display: none;
+    }
+
+    #error p {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: var(--err);
+    }
+
+    #error-code {
+      display: inline-block;
+      margin-right: 6px;
+      padding: 0 5px;
+      font: bold 11px/1.6 ui-monospace, Consolas, monospace;
+      color: var(--paper);
+      background: var(--err);
+    }
+
+    #report-error {
+      display: block;
+      width: 100%;
+      padding: 8px 10px;
+      font: bold 14px/1.3 Georgia, "Times New Roman", serif;
+      color: var(--paper);
+      background: var(--err);
+      border: 0;
+      border-radius: 0;
+      cursor: pointer;
+    }
+
+    #report-error:hover {
+      background: #8f1e18;
+    }
+
+    #report-error:focus-visible {
+      outline: 3px solid #3b6fd8;
+      outline-offset: 2px;
+    }
+
+    #error small {
+      display: block;
+      margin-top: 6px;
+      font-size: 11px;
+      color: #7a4a47;
     }
 
     footer a {
@@ -131,14 +198,21 @@
 <body>
   <h1>Crossword Labs Autofill</h1>
   <button class="cell" id="fill">
-    Fill and grade puzzle
+    <strong>Fill and grade puzzle</strong>
     <small>Fills every box, saves progress, and reloads.</small>
   </button>
   <p id="status" role="status"></p>
-  <a id="report" hidden>Report this problem on GitHub</a>
+  <div id="error" role="alert" hidden>
+    <p><span id="error-code"></span><span id="error-msg"></span></p>
+    <button type="button" id="report-error">Report this problem</button>
+    <small>Opens a pre-filled GitHub issue. Nothing is sent until you submit it.</small>
+  </div>
   <footer>
-    <p><a href="https://github.com/Trogiken/crossword-labs-autofill" id="source">View source on GitHub</a></p>
-    <p>Not affiliated with or endorsed by crosswordlabs.com.</p>
+    <div class="actions">
+      <a href="https://github.com/Trogiken/crossword-labs-autofill" id="source">View source on GitHub</a>
+      <button type="button" id="report">Report a problem</button>
+    </div>
+    <p>Not affiliated with or endorsed by CrosswordLabs.com</p>
   </footer>
   <script src="popup.js"></script>
 </body>

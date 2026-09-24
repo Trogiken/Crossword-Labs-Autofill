@@ -90,7 +90,7 @@ Don't send the solution grid to the client. Send only the grid shape (which cell
 
 ## Reporting problems
 
-If something goes wrong, the popup shows an error code and a **Report this problem on GitHub** link. The link opens a new issue with the code, the page URL, the extension version, and your browser version already filled in. Nothing is sent until you review it and submit the issue yourself.
+The popup has a **Report a problem** button. It opens a new GitHub issue with the extension version and your browser version already filled in, plus the page URL if you're on Crossword Labs. If something goes wrong, a red error panel appears with the error code and a **Report this problem** button, and the issue also includes that error's code and details. Nothing is sent until you review the issue and submit it yourself.
 
 | Code | Meaning |
 | --- | --- |

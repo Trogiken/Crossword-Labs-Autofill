@@ -117,35 +117,47 @@ test("E901 with a stack trace when something throws", () => {
   assert.match(result.detail, /boom/);
 });
 
-// Loads the whole popup with a fake chrome API, clicks the button, and
-// returns what the user would see.
+// Loads the whole popup with a fake chrome API, clicks Fill (unless
+// executeScript is null), then clicks "Report a problem", and returns what
+// the user would see plus the issue that would open.
 async function clickFill(tabUrl, executeScript) {
   const els = {};
   const el = (id) => (els[id] = {
-    hidden: id === "report", href: "", textContent: "", className: "", disabled: false,
+    textContent: "", className: "", disabled: false, hidden: id === "error",
+    focus() { focused = id; },
     addEventListener(type, fn) { this.onclick = fn; }
   });
+  let opened = null;
+  let focused = null;
   const ctx = {
     URL,
     navigator: { userAgent: "TestBrowser/1.0" },
     document: { getElementById: el, querySelectorAll: () => [] },
     chrome: {
       runtime: { getManifest: () => ({ version: "9.9.9" }) },
-      tabs: { query: async () => [{ id: 1, url: tabUrl }], create() {} },
+      tabs: { query: async () => [{ id: 1, url: tabUrl }], create: (o) => { opened = o.url; } },
       scripting: { executeScript }
     }
   };
   vm.createContext(ctx);
   vm.runInContext(SRC, ctx);
-  await els.fill.onclick();
-  const report = els.report.hidden ? null : new URL(els.report.href);
-  return {
+  if (executeScript) await els.fill.onclick();
+  const ui = {
     status: els.status.textContent,
     kind: els.status.className,
     disabled: els.fill.disabled,
-    title: report && report.searchParams.get("title"),
-    body: report && report.searchParams.get("body")
+    // The error panel's code badge, or null while the panel is hidden.
+    error: els.error.hidden ? null : els["error-code"].textContent,
+    errorMsg: els["error-msg"].textContent,
+    focused
   };
+  await els.report.onclick();
+  const issue = new URL(opened);
+  // The panel's button must open exactly the same issue as the footer one.
+  opened = null;
+  await els["report-error"].onclick();
+  assert.equal(opened, issue.toString());
+  return { ...ui, title: issue.searchParams.get("title"), body: issue.searchParams.get("body") };
 }
 
 const PUZZLE_URL = "https://crosswordlabs.com/view/test-puzzle";
@@ -156,13 +168,13 @@ test("popup: success shows the message and keeps the button disabled", async () 
   assert.equal(ui.status, "Filled 2 words.");
   assert.equal(ui.kind, "ok");
   assert.equal(ui.disabled, true);
-  assert.equal(ui.title, null);
+  assert.equal(ui.error, null);
 });
 
-test("popup: other sites get a hint and no report link", async () => {
+test("popup: other sites get a hint, not an error", async () => {
   const ui = await clickFill("https://example.com/", never);
   assert.equal(ui.status, "Open a Crossword Labs puzzle first.");
-  assert.equal(ui.title, null);
+  assert.equal(ui.error, null);
   assert.equal(ui.disabled, false);
 });
 
@@ -175,18 +187,20 @@ test("popup: www and embed URLs are accepted", async () => {
 test("popup: no grid on a non-puzzle page is a hint, not a bug", async () => {
   const ui = await clickFill("https://crosswordlabs.com/", async () => [{ result: { ok: false, code: "E101", detail: "" } }]);
   assert.equal(ui.status, "Open a Crossword Labs puzzle first.");
-  assert.equal(ui.title, null);
+  assert.equal(ui.error, null);
 });
 
 test("popup: no grid on a puzzle page offers a report", async () => {
   const ui = await clickFill(PUZZLE_URL, async () => [{ result: { ok: false, code: "E101", detail: "grid is undefined" } }]);
-  assert.match(ui.status, /\(E101\)$/);
+  assert.equal(ui.error, "E101");
+  assert.equal(ui.errorMsg, "No puzzle grid found on this page.");
+  assert.equal(ui.focused, "report-error");
   assert.match(ui.title, /^\[E101\]/);
 });
 
 test("popup: injection failure is E301 with a filled-in report", async () => {
   const ui = await clickFill(PUZZLE_URL, async () => { throw new Error("Cannot access contents of the page"); });
-  assert.match(ui.status, /\(E301\)$/);
+  assert.equal(ui.error, "E301");
   assert.equal(ui.title, "[E301] Couldn't run on this page.");
   for (const s of ["Code:      E301", "Cannot access contents of the page", PUZZLE_URL, "Extension: 9.9.9", "TestBrowser/1.0"]) {
     assert.ok(ui.body.includes(s), `report body should include ${s}`);
@@ -196,15 +210,59 @@ test("popup: injection failure is E301 with a filled-in report", async () => {
 
 test("popup: empty result is E302", async () => {
   const ui = await clickFill(PUZZLE_URL, async () => [{ result: null }]);
-  assert.match(ui.status, /\(E302\)$/);
+  assert.equal(ui.error, "E302");
 });
 
 test("popup: unknown error codes become E901", async () => {
   const ui = await clickFill(PUZZLE_URL, async () => [{ result: { ok: false, code: "E999", detail: "" } }]);
-  assert.match(ui.status, /\(E901\)$/);
+  assert.equal(ui.error, "E901");
 });
 
 test("popup: long details are trimmed so the issue URL stays short", async () => {
   const ui = await clickFill(PUZZLE_URL, async () => [{ result: { ok: false, code: "E901", detail: "x".repeat(50000) } }]);
   assert.ok(ui.body.length < 2500, `body was ${ui.body.length} chars`);
+});
+
+test("report button: general report without an error", async () => {
+  const ui = await clickFill(PUZZLE_URL, null);
+  assert.equal(ui.title, "Problem report");
+  for (const s of ["Code:      none", PUZZLE_URL, "Extension: 9.9.9", "TestBrowser/1.0"]) {
+    assert.ok(ui.body.includes(s), `report body should include ${s}`);
+  }
+});
+
+test("report button: doesn't include the URL of non-Crossword Labs pages", async () => {
+  const ui = await clickFill("https://mail.example.com/inbox/secret", null);
+  assert.ok(!ui.body.includes("example.com"));
+  assert.ok(ui.body.includes("Page:      -"));
+});
+
+test("error panel: a successful run hides it and clears the error", async () => {
+  let calls = 0;
+  const flaky = async () => (calls++ ? [{ result: { ok: true, msg: "ok" } }] : [{ result: null }]);
+  const els = {};
+  // Two clicks in one popup: first fails, second succeeds.
+  const el = (id) => (els[id] = {
+    textContent: "", className: "", disabled: false, hidden: id === "error",
+    focus() {},
+    addEventListener(type, fn) { this.onclick = fn; }
+  });
+  let opened = null;
+  const ctx = {
+    URL, navigator: { userAgent: "T" },
+    document: { getElementById: el, querySelectorAll: () => [] },
+    chrome: {
+      runtime: { getManifest: () => ({ version: "1" }) },
+      tabs: { query: async () => [{ id: 1, url: PUZZLE_URL }], create: (o) => { opened = o.url; } },
+      scripting: { executeScript: flaky }
+    }
+  };
+  vm.createContext(ctx);
+  vm.runInContext(SRC, ctx);
+  await els.fill.onclick();
+  assert.equal(els.error.hidden, false);
+  await els.fill.onclick();
+  assert.equal(els.error.hidden, true);
+  await els.report.onclick();
+  assert.equal(new URL(opened).searchParams.get("title"), "Problem report");
 });

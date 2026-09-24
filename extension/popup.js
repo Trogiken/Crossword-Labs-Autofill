@@ -1,6 +1,14 @@
 const statusEl = document.getElementById("status");
-const reportEl = document.getElementById("report");
+const reportBtn = document.getElementById("report");
+const errorEl = document.getElementById("error");
+const errorCodeEl = document.getElementById("error-code");
+const errorMsgEl = document.getElementById("error-msg");
+const reportErrorBtn = document.getElementById("report-error");
 const button = document.getElementById("fill");
+
+// The most recent failure, { code, detail, tabUrl }, so "Report a problem"
+// can pre-fill its diagnostics. Null when the last run didn't fail.
+let lastError = null;
 
 // crosswordlabs.com, with or without www, over http or https.
 const SITE_RE = /^https?:\/\/(www\.)?crosswordlabs\.com\//i;
@@ -33,11 +41,14 @@ function errorText(e) {
 function setStatus(text, kind) {
   statusEl.textContent = text;
   statusEl.className = kind || "";
+  statusEl.hidden = false;
 }
 
-// Points the "Report this problem" link at a pre-filled GitHub issue.
-// Nothing is sent anywhere unless the user reviews and submits the issue.
-function showReport(code, detail, tabUrl) {
+// URL of a pre-filled GitHub issue, for the given failure or a general
+// report when err is null. Nothing is sent anywhere unless the user reviews
+// and submits the issue.
+function issueUrl(err, tabUrl) {
+  const code = err ? err.code : "none";
   const body = [
     "**What happened**",
     "<!-- Anything you can add helps: what you clicked, what you saw. -->",
@@ -47,18 +58,17 @@ function showReport(code, detail, tabUrl) {
     "",
     "```",
     `Code:      ${code}`,
-    `Message:   ${ERRORS[code]}`,
-    `Detail:    ${(detail || "-").slice(0, MAX_DETAIL)}`,
+    `Message:   ${err ? ERRORS[code] : "-"}`,
+    `Detail:    ${((err && err.detail) || "-").slice(0, MAX_DETAIL)}`,
     `Page:      ${tabUrl || "-"}`,
     `Extension: ${chrome.runtime.getManifest().version}`,
     `Browser:   ${navigator.userAgent}`,
     "```"
   ].join("\n");
   const url = new URL(ISSUES_URL);
-  url.searchParams.set("title", `[${code}] ${ERRORS[code]}`);
+  url.searchParams.set("title", err ? `[${code}] ${ERRORS[code]}` : "Problem report");
   url.searchParams.set("body", body);
-  reportEl.href = url.toString();
-  reportEl.hidden = false;
+  return url.toString();
 }
 
 // Runs inside the page's own JS context (world: "MAIN") so it can read the
@@ -186,7 +196,7 @@ function pageFill() {
 
 // Checks the tab, injects pageFill, and normalizes every outcome to
 // { ok: true, msg } | { ok: false, code, detail } | { ok: false, msg }.
-// The last form is for user mistakes, which get no report link.
+// The last form is for user mistakes, which don't show the error panel.
 async function run(tab) {
   const tabUrl = (tab && tab.url) || "";
   if (!tab || !SITE_RE.test(tabUrl)) {
@@ -215,7 +225,8 @@ async function run(tab) {
 
 button.addEventListener("click", async () => {
   button.disabled = true;
-  reportEl.hidden = true;
+  lastError = null;
+  errorEl.hidden = true;
   setStatus("Filling…");
 
   let tab;
@@ -233,13 +244,33 @@ button.addEventListener("click", async () => {
     return;
   }
   if (out.code) {
-    setStatus(`${ERRORS[out.code]} (${out.code})`, "err");
-    showReport(out.code, out.detail, tab && tab.url);
+    statusEl.hidden = true; // the error panel takes its place
+    lastError = { code: out.code, detail: out.detail, tabUrl: tab && tab.url };
+    errorCodeEl.textContent = out.code;
+    errorMsgEl.textContent = ERRORS[out.code];
+    errorEl.hidden = false;
+    reportErrorBtn.focus();
   } else {
     setStatus(out.msg, "err");
   }
   button.disabled = false;
 });
+
+// Both buttons open the same issue: pre-filled with the last error if there
+// is one, otherwise a general report.
+async function openReport() {
+  let tabUrl = lastError ? lastError.tabUrl : "";
+  if (!lastError) {
+    // Only name the page if it's a Crossword Labs page; the issue is public.
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && SITE_RE.test(tab.url || "")) tabUrl = tab.url;
+    } catch (e) { }
+  }
+  chrome.tabs.create({ url: issueUrl(lastError, tabUrl) });
+}
+reportBtn.addEventListener("click", openReport);
+reportErrorBtn.addEventListener("click", openReport);
 
 // Open links in a new tab (plain links don't navigate from a popup reliably).
 for (const a of document.querySelectorAll("a")) {
