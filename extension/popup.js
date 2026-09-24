@@ -4,13 +4,12 @@ const errorEl = document.getElementById("error");
 const errorCodeEl = document.getElementById("error-code");
 const errorMsgEl = document.getElementById("error-msg");
 const reportErrorBtn = document.getElementById("report-error");
-const button = document.getElementById("fill");
+const fillBtn = document.getElementById("fill");
 
-// The most recent failure, { code, detail, tabUrl }, so "Report a problem"
-// can pre-fill its diagnostics. Null when the last run didn't fail.
+// The most recent failure, { code, detail, tabUrl }, used to pre-fill the
+// issue. Null when the last run didn't fail.
 let lastError = null;
 
-// crosswordlabs.com, with or without www, over http or https.
 const SITE_RE = /^https?:\/\/(www\.)?crosswordlabs\.com\//i;
 // Pages that hold a single puzzle. A missing grid anywhere else (the home
 // page, search results) is expected, so it isn't offered as a bug report.
@@ -44,11 +43,11 @@ function setStatus(text, kind) {
   statusEl.hidden = false;
 }
 
-// URL of a pre-filled GitHub issue, for the given failure or a general
-// report when err is null. Nothing is sent anywhere unless the user reviews
-// and submits the issue.
+// URL of a pre-filled GitHub issue for err, or a general report if err is null.
 function issueUrl(err, tabUrl) {
   const code = err ? err.code : "none";
+  // Issues are public, so only name the page if it's on Crossword Labs.
+  const page = SITE_RE.test(tabUrl || "") ? tabUrl : "-";
   const body = [
     "**What happened**",
     "<!-- Anything you can add helps: what you clicked, what you saw. -->",
@@ -60,7 +59,7 @@ function issueUrl(err, tabUrl) {
     `Code:      ${code}`,
     `Message:   ${err ? ERRORS[code] : "-"}`,
     `Detail:    ${((err && err.detail) || "-").slice(0, MAX_DETAIL)}`,
-    `Page:      ${tabUrl || "-"}`,
+    `Page:      ${page}`,
     `Extension: ${chrome.runtime.getManifest().version}`,
     `Browser:   ${navigator.userAgent}`,
     "```"
@@ -79,7 +78,7 @@ function issueUrl(err, tabUrl) {
 //   - word starts come from index_to_row_column/index_to_direction, or are
 //     rebuilt from each grid cell's own across/down metadata;
 //   - CROSSWORD_ID comes from the global, or from the page's og:image URL;
-//   - the page is only reloaded if progress was actually saved.
+//   - the page is only reloaded if every word was saved.
 //
 // Returns { ok: true, msg } or { ok: false, code, detail }.
 function pageFill() {
@@ -90,7 +89,7 @@ function pageFill() {
   }
 
   function fill() {
-    // typeof is safe on undeclared names; each global is read once, here.
+    // typeof is safe on undeclared names.
     const pageGrid = typeof grid !== "undefined" ? grid : undefined;
     const rowCol = typeof index_to_row_column !== "undefined" ? index_to_row_column : undefined;
     const dirs = typeof index_to_direction !== "undefined" ? index_to_direction : undefined;
@@ -175,10 +174,12 @@ function pageFill() {
       }
     }
 
-    if (saved) {
+    // Reload only if every word saved; otherwise the site would grade a
+    // partly filled grid.
+    if (saved && !storageError) {
       // Give the popup a moment to receive the result before the page goes away.
       setTimeout(() => location.reload(), 100);
-      return { ok: true, msg: `Filled ${saved} words. Reloading to grade…` };
+      return { ok: true, msg: `Filled ${saved} word${saved === 1 ? "" : "s"}. Reloading to grade…` };
     }
 
     const detail = [
@@ -188,6 +189,7 @@ function pageFill() {
       `starts=${Object.keys(starts).length}`,
       `tables=${rowCol && dirs ? "yes" : "no"}`,
       `id=${hasId ? "yes" : "no"}`,
+      `saved=${saved}`,
       storageError && `storage=${storageError}`
     ].filter(Boolean).join(" ");
     return { ok: false, code: filled ? "E202" : "E201", detail };
@@ -223,8 +225,8 @@ async function run(tab) {
   return { ok: false, code: ERRORS[out.code] ? out.code : "E901", detail: out.detail };
 }
 
-button.addEventListener("click", async () => {
-  button.disabled = true;
+fillBtn.addEventListener("click", async () => {
+  fillBtn.disabled = true;
   lastError = null;
   errorEl.hidden = true;
   setStatus("Filling…");
@@ -239,12 +241,13 @@ button.addEventListener("click", async () => {
   }
 
   if (out.ok) {
-    // Leave the button disabled; the page is about to reload.
     setStatus(out.msg, "ok");
+    // Stay disabled until the reload has had time to finish.
+    setTimeout(() => { fillBtn.disabled = false; }, 2000);
     return;
   }
   if (out.code) {
-    statusEl.hidden = true; // the error panel takes its place
+    statusEl.hidden = true;
     lastError = { code: out.code, detail: out.detail, tabUrl: tab && tab.url };
     errorCodeEl.textContent = out.code;
     errorMsgEl.textContent = ERRORS[out.code];
@@ -253,19 +256,18 @@ button.addEventListener("click", async () => {
   } else {
     setStatus(out.msg, "err");
   }
-  button.disabled = false;
+  fillBtn.disabled = false;
 });
 
-// Both buttons open the same issue: pre-filled with the last error if there
-// is one, otherwise a general report.
 async function openReport() {
   let tabUrl = lastError ? lastError.tabUrl : "";
   if (!lastError) {
-    // Only name the page if it's a Crossword Labs page; the issue is public.
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab && SITE_RE.test(tab.url || "")) tabUrl = tab.url;
-    } catch (e) { }
+      tabUrl = (tab && tab.url) || "";
+    } catch (e) {
+      // Report without the page URL.
+    }
   }
   chrome.tabs.create({ url: issueUrl(lastError, tabUrl) });
 }

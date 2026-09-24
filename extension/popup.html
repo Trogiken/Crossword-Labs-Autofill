@@ -106,7 +106,7 @@
       margin-bottom: 6px;
     }
 
-    .actions > * {
+    .actions>* {
       white-space: nowrap;
     }
 
@@ -129,7 +129,6 @@
       outline-offset: 1px;
     }
 
-    /* Shown after an error, so reporting it is one obvious click. */
     #error {
       margin: 10px 0 0;
       padding: 10px 12px 12px;
@@ -149,7 +148,6 @@
 
     #error-code {
       display: inline-block;
-      margin-right: 6px;
       padding: 0 5px;
       font: bold 11px/1.6 ui-monospace, Consolas, monospace;
       color: var(--paper);
@@ -203,7 +201,7 @@
   </button>
   <p id="status" role="status"></p>
   <div id="error" role="alert" hidden>
-    <p><span id="error-code"></span><span id="error-msg"></span></p>
+    <p><span id="error-code"></span> <span id="error-msg"></span></p>
     <button type="button" id="report-error">Report this problem</button>
     <small>Opens a pre-filled GitHub issue. Nothing is sent until you submit it.</small>
   </div>
@@ -212,7 +210,7 @@
       <a href="https://github.com/Trogiken/crossword-labs-autofill" id="source">View source on GitHub</a>
       <button type="button" id="report">Report a problem</button>
     </div>
-    <p>Not affiliated with or endorsed by CrosswordLabs.com</p>
+    <p>Not affiliated with or endorsed by CrosswordLabs.com.</p>
   </footer>
   <script src="popup.js"></script>
 </body>

@@ -43,7 +43,9 @@ function runPageFill(opts = {}) {
     },
     localStorage: {
       setItem(k, v) {
-        if (opts.storageThrows) throw Object.assign(new Error("full"), { name: "QuotaExceededError" });
+        if (opts.storageThrows || (opts.storageThrowsAfter != null && Object.keys(store).length >= opts.storageThrowsAfter)) {
+          throw Object.assign(new Error("full"), { name: "QuotaExceededError" });
+        }
         store[k] = v;
       }
     },
@@ -103,6 +105,18 @@ test("E202 with the storage error name when localStorage throws", () => {
   assert.match(result.detail, /storage=QuotaExceededError/);
 });
 
+test("E202 and no reload when only some words save", () => {
+  const { result, reloaded } = runPageFill({ storageThrowsAfter: 1 });
+  assert.equal(result.code, "E202");
+  assert.match(result.detail, /saved=1 storage=QuotaExceededError/);
+  assert.equal(reloaded, false);
+});
+
+test("singular message for a one-word puzzle", () => {
+  const { result } = runPageFill({ setup: "grid = [[{ char: 'a', across: { index: 0, is_start_of_word: true }, down: null }]]" });
+  assert.equal(result.msg, "Filled 1 word. Reloading to grade…");
+});
+
 test("E201 when nothing can be filled or saved", () => {
   const { result } = runPageFill({ noDom: true, noId: true, noOgImage: true });
   assert.equal(result.code, "E201");
@@ -131,6 +145,7 @@ async function clickFill(tabUrl, executeScript) {
   let focused = null;
   const ctx = {
     URL,
+    setTimeout: (f) => f(),
     navigator: { userAgent: "TestBrowser/1.0" },
     document: { getElementById: el, querySelectorAll: () => [] },
     chrome: {
@@ -163,11 +178,11 @@ async function clickFill(tabUrl, executeScript) {
 const PUZZLE_URL = "https://crosswordlabs.com/view/test-puzzle";
 const never = async () => { throw new Error("should not be called"); };
 
-test("popup: success shows the message and keeps the button disabled", async () => {
+test("popup: success shows the message and re-enables the button after the reload", async () => {
   const ui = await clickFill(PUZZLE_URL, async () => [{ result: { ok: true, msg: "Filled 2 words." } }]);
   assert.equal(ui.status, "Filled 2 words.");
   assert.equal(ui.kind, "ok");
-  assert.equal(ui.disabled, true);
+  assert.equal(ui.disabled, false);
   assert.equal(ui.error, null);
 });
 
@@ -249,7 +264,7 @@ test("error panel: a successful run hides it and clears the error", async () => 
   });
   let opened = null;
   const ctx = {
-    URL, navigator: { userAgent: "T" },
+    URL, setTimeout: (f) => f(), navigator: { userAgent: "T" },
     document: { getElementById: el, querySelectorAll: () => [] },
     chrome: {
       runtime: { getManifest: () => ({ version: "1" }) },
