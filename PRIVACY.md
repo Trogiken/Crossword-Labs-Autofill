@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Crossword Labs Autofill** — last updated September 23, 2026
+**Crossword Labs Autofill**. Last updated September 24, 2026.
 
 This extension does not collect, store, transmit, or sell any personal or usage data.
 
@@ -10,4 +10,8 @@ The extension makes no network requests, uses no analytics, and has no server. N
 
 The extension only runs on crosswordlabs.com, and only when you click its button.
 
+If an error occurs, the popup offers a link to report it on GitHub. Clicking that link opens a new GitHub issue in your browser, pre-filled with the error code, the puzzle page's URL, the extension version, and your browser's user agent. Nothing is sent unless you choose to submit that issue, and you can edit or delete any of it first. Anything you submit is public on GitHub.
+
 Questions: [open an issue on GitHub](https://github.com/Trogiken/crossword-labs-autofill/issues).
+
+The full source code is public, so you can verify all of this yourself: <https://github.com/Trogiken/crossword-labs-autofill>

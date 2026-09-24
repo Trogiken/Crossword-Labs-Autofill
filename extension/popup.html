@@ -89,6 +89,22 @@
       color: var(--err);
     }
 
+    #report {
+      display: block;
+      margin: 2px 0 0;
+      font-size: 13px;
+      color: var(--err);
+    }
+
+    #report[hidden] {
+      display: none;
+    }
+
+    #report:focus-visible {
+      outline: 2px solid #3b6fd8;
+      outline-offset: 1px;
+    }
+
     footer {
       margin-top: 10px;
       padding-top: 8px;
@@ -119,6 +135,7 @@
     <small>Fills every box, saves progress, and reloads.</small>
   </button>
   <p id="status" role="status"></p>
+  <a id="report" hidden>Report this problem on GitHub</a>
   <footer>
     <p><a href="https://github.com/Trogiken/crossword-labs-autofill" id="source">View source on GitHub</a></p>
     <p>Not affiliated with or endorsed by crosswordlabs.com.</p>
